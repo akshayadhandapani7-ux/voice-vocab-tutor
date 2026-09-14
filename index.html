@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>WordWise — Voice Vocabulary Tutor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #12192E;
+    --panel: #1B2440;
+    --panel-hi: #232E52;
+    --gold: #F2A93B;
+    --gold-dim: #a97a2c;
+    --sage: #7FB685;
+    --paper: #F3EFE4;
+    --muted: #8C97B8;
+    --danger: #d97a6a;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: 'Inter', sans-serif;
+    min-height: 100%;
+  }
+  body {
+    display: flex;
+    justify-content: center;
+    padding: 32px 16px 60px;
+  }
+  .app {
+    width: 100%;
+    max-width: 460px;
+  }
+  header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  header .eyebrow {
+    font-size: 13px;
+    color: var(--gold);
+    letter-spacing: 0.02em;
+    margin-bottom: 6px;
+  }
+  header h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 28px;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  header p {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 8px 0 0;
+    line-height: 1.5;
+  }
+
+  .progress-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 22px 0 18px;
+  }
+  .progress-track {
+    flex: 1;
+    height: 6px;
+    background: var(--panel);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--gold);
+    width: 0%;
+    transition: width 0.4s ease;
+  }
+  .progress-label {
+    font-size: 13px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .card {
+    background: var(--panel);
+    border-radius: 18px;
+    padding: 30px 26px;
+    text-align: center;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+  .word-display {
+    font-family: 'Fraunces', serif;
+    font-size: 40px;
+    font-weight: 600;
+    line-height: 1.1;
+  }
+  .pos {
+    font-size: 13px;
+    color: var(--gold);
+    font-style: italic;
+  }
+  .clue-sentence {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.55;
+    margin-top: 6px;
+  }
+  .card.placeholder {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .stage {
+    margin: 22px 0 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .mic-button {
+    width: 92px;
+    height: 92px;
+    border-radius: 50%;
+    border: none;
+    background: var(--panel-hi);
+    color: var(--paper);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.15s ease, background 0.2s ease;
+  }
+  .mic-button:active { transform: scale(0.96); }
+  .mic-button:disabled { cursor: not-allowed; opacity: 0.5; }
+  .mic-button svg { width: 34px; height: 34px; }
+
+  .mic-button.speaking {
+    background: var(--gold-dim);
+    animation: pulseSpeak 1.1s infinite ease-in-out;
+  }
+  .mic-button.listening {
+    background: var(--sage);
+    color: var(--ink);
+    animation: pulseListen 0.9s infinite ease-in-out;
+  }
+  .mic-button.thinking {
+    background: var(--panel-hi);
+    color: var(--muted);
+    animation: spinThink 1.1s linear infinite;
+  }
+  @keyframes pulseSpeak {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(242,169,59,0.35); }
+    50% { box-shadow: 0 0 0 14px rgba(242,169,59,0); }
+  }
+  @keyframes pulseListen {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(127,182,133,0.4); }
+    50% { box-shadow: 0 0 0 16px rgba(127,182,133,0); }
+  }
+  @keyframes spinThink {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+  }
+
+  .stage-label {
+    font-size: 13px;
+    color: var(--muted);
+    min-height: 18px;
+  }
+
+  .transcript {
+    background: var(--panel);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-top: 6px;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 24px;
+    color: var(--paper);
+  }
+  .transcript .verdict {
+    font-weight: 600;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .transcript .verdict.correct { color: var(--sage); }
+  .transcript .verdict.retry { color: var(--gold); }
+  .transcript .you-said {
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .fallback-input {
+    display: none;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .fallback-input input {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: var(--paper);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+  }
+  .fallback-input input:focus { outline: 1px solid var(--gold); }
+  .fallback-input button {
+    background: var(--gold);
+    color: var(--ink);
+    border: none;
+    border-radius: 10px;
+    padding: 0 16px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+  }
+  .btn {
+    flex: 1;
+    padding: 13px 0;
+    border-radius: 12px;
+    border: none;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .btn.primary { background: var(--gold); color: var(--ink); }
+  .btn.ghost { background: transparent; color: var(--muted); border: 1px solid rgba(255,255,255,0.12); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .score-strip {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 18px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .score-strip span b { color: var(--paper); }
+
+  .summary {
+    text-align: center;
+    padding: 10px 4px 0;
+  }
+  .summary h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    margin: 0 0 6px;
+  }
+  .summary p { color: var(--muted); font-size: 14px; }
+  .word-list {
+    text-align: left;
+    margin-top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .word-list .row {
+    display: flex;
+    justify-content: space-between;
+    background: var(--panel);
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+  }
+  .word-list .row b { font-family: 'Fraunces', serif; }
+  .word-list .tag {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .tag.correct { background: rgba(127,182,133,0.18); color: var(--sage); }
+  .tag.retry { background: rgba(242,169,59,0.18); color: var(--gold); }
+
+  .support-note {
+    margin-top: 18px;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="eyebrow">WordWise</div>
+    <h1>Learn a word out loud</h1>
+    <p>Your voice tutor says a word and a clue. Say what you think it means — no need to be exact.</p>
+  </header>
+
+  <div class="progress-row">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-label" id="progressLabel">0 / 0</div>
+  </div>
+
+  <div id="mainCard" class="card placeholder">
+    Press start and put your volume on. Your tutor will greet you first.
+  </div>
+
+  <div class="stage">
+    <button class="mic-button" id="micBtn" disabled>
+      <svg id="micIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+        <line x1="12" y1="19" x2="12" y2="23"></line>
+        <line x1="8" y1="23" x2="16" y2="23"></line>
+      </svg>
+    </button>
+    <div class="stage-label" id="stageLabel">Not started yet</div>
+  </div>
+
+  <div class="fallback-input" id="fallbackInput">
+    <input type="text" id="fallbackText" placeholder="Type your guess instead…">
+    <button id="fallbackSend">Send</button>
+  </div>
+
+  <div class="transcript" id="transcript" style="display:none;"></div>
+
+  <div class="controls">
+    <button class="btn primary" id="startBtn">Start session</button>
+    <button class="btn ghost" id="skipBtn" disabled>Skip word</button>
+  </div>
+
+  <div class="score-strip">
+    <span>Words covered: <b id="statCovered">0</b></span>
+    <span>Nailed it: <b id="statCorrect">0</b></span>
+  </div>
+
+  <div class="support-note" id="supportNote"></div>
+</div>
+
+<script>
+const WORDS = [
+  { word: "ephemeral", pos: "adjective", definition: "lasting for a very short time", clue: "Cherry blossoms are famous for being ___ — gone within a week.", keywords: ["short", "brief", "temporary", "fleeting", "quick", "momentary"] },
+  { word: "resilient", pos: "adjective", definition: "able to recover quickly from difficulty", clue: "After the storm damaged the town, residents were ___, rebuilding within months.", keywords: ["recover", "bounce back", "tough", "strong", "adapt", "survive"] },
+  { word: "meticulous", pos: "adjective", definition: "showing great attention to detail; very careful and precise", clue: "The surgeon was ___, double-checking every step before the operation.", keywords: ["careful", "detail", "precise", "thorough", "exact"] },
+  { word: "ambiguous", pos: "adjective", definition: "open to more than one interpretation; not clear", clue: "The instructions were so ___ that half the class did the assignment differently.", keywords: ["unclear", "vague", "confusing", "uncertain", "multiple meaning"] },
+  { word: "candid", pos: "adjective", definition: "truthful and straightforward; frank", clue: "I asked for her honest opinion, and she gave me a refreshingly ___ answer.", keywords: ["honest", "frank", "direct", "truthful", "blunt"] },
+  { word: "eloquent", pos: "adjective", definition: "fluent and persuasive in speaking or writing", clue: "The speech was so ___ that the entire room fell silent to listen.", keywords: ["persuasive", "articulate", "fluent", "expressive", "well spoken"] },
+  { word: "pragmatic", pos: "adjective", definition: "dealing with things sensibly and realistically", clue: "Instead of dreaming big, she took a ___ approach and fixed one problem at a time.", keywords: ["practical", "realistic", "sensible", "logical"] },
+  { word: "tenacious", pos: "adjective", definition: "holding firmly to a purpose; persistent", clue: "Even after ten rejections, the ___ founder kept pitching investors.", keywords: ["persistent", "determined", "stubborn", "unyielding", "relentless"] },
+  { word: "ubiquitous", pos: "adjective", definition: "present or found everywhere", clue: "Smartphones have become so ___ that it's rare to see anyone without one.", keywords: ["everywhere", "common", "widespread", "universal"] },
+  { word: "conundrum", pos: "noun", definition: "a confusing and difficult problem", clue: "Choosing between two great job offers is a nice ___ to have.", keywords: ["problem", "puzzle", "dilemma", "riddle", "difficult decision"] }
+];
+
+let idx = -1;
+let score = { covered: 0, correct: 0 };
+let results = [];
+let recognition = null;
+let isProcessing = false;
+let speechSupported = 'speechSynthesis' in window;
+let recognitionSupported = ('webkitSpeechRecognition' in window) || ('SpeechRecognition' in window);
+
+const micBtn = document.getElementById('micBtn');
+const micIcon = document.getElementById('micIcon');
+const stageLabel = document.getElementById('stageLabel');
+const mainCard = document.getElementById('mainCard');
+const transcriptEl = document.getElementById('transcript');
+const startBtn = document.getElementById('startBtn');
+const skipBtn = document.getElementById('skipBtn');
+const progressFill = document.getElementById('progressFill');
+const progressLabel = document.getElementById('progressLabel');
+const statCovered = document.getElementById('statCovered');
+const statCorrect = document.getElementById('statCorrect');
+const fallbackInput = document.getElementById('fallbackInput');
+const fallbackText = document.getElementById('fallbackText');
+const fallbackSend = document.getElementById('fallbackSend');
+const supportNote = document.getElementById('supportNote');
+
+if (!speechSupported) {
+  supportNote.textContent = "Your browser doesn't support voice output. Try Chrome or Edge for the full spoken experience.";
+} else if (!recognitionSupported) {
+  supportNote.textContent = "Voice input isn't supported in this browser — you can type your guesses instead. Try Chrome on desktop or Android for full voice input.";
+} else {
+  supportNote.textContent = "Tip: allow microphone access when prompted, and use headphones so the tutor doesn't hear itself.";
+}
+
+function speak(text, onEnd) {
+  if (!speechSupported) { if (onEnd) onEnd(); return; }
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = 0.98;
+  utter.pitch = 1.0;
+  setMicState('speaking');
+  utter.onend = () => { setMicState('idle'); if (onEnd) onEnd(); };
+  utter.onerror = () => { setMicState('idle'); if (onEnd) onEnd(); };
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utter);
+}
+
+function setMicState(state) {
+  micBtn.classList.remove('speaking', 'listening', 'thinking');
+  if (state === 'speaking') {
+    micBtn.classList.add('speaking');
+    stageLabel.textContent = "Tutor is speaking…";
+    micBtn.disabled = true;
+  } else if (state === 'listening') {
+    micBtn.classList.add('listening');
+    stageLabel.textContent = "Listening — say your answer…";
+    micBtn.disabled = true;
+  } else if (state === 'thinking') {
+    micBtn.classList.add('thinking');
+    stageLabel.textContent = "Tutor is thinking…";
+    micBtn.disabled = true;
+  } else {
+    stageLabel.textContent = "Tap the mic to answer";
+    micBtn.disabled = false;
+  }
+}
+
+function updateProgress() {
+  const pct = Math.round((idx / WORDS.length) * 100);
+  progressFill.style.width = pct + "%";
+  progressLabel.textContent = `${Math.min(idx + (idx>=0?1:0), WORDS.length)} / ${WORDS.length}`;
+  statCovered.textContent = score.covered;
+  statCorrect.textContent = score.correct;
+}
+
+function showWordCard(item) {
+  mainCard.classList.remove('placeholder');
+  mainCard.innerHTML = `
+    <div class="word-display">${item.word}</div>
+    <div class="pos">${item.pos}</div>
+    <div class="clue-sentence">${item.clue}</div>
+  `;
+}
+
+function startSession() {
+  startBtn.disabled = true;
+  skipBtn.disabled = false;
+  idx = -1;
+  score = { covered: 0, correct: 0 };
+  results = [];
+  updateProgress();
+  transcriptEl.style.display = 'none';
+  speak("Hi, I'm your vocabulary tutor. I'll say a word and a sentence with a blank. Just say what you think it means, in your own words. Try to use a few natural describing words — I'll do my best to catch the idea. Let's begin.", nextWord);
+}
+
+function nextWord() {
+  idx++;
+  if (idx >= WORDS.length) { finishSession(); return; }
+  updateProgress();
+  const item = WORDS[idx];
+  showWordCard(item);
+  transcriptEl.style.display = 'none';
+  speak(`Word number ${idx + 1}: ${item.word}. Here's a clue: ${item.clue}`, () => {
+    setMicState('idle');
+  });
+}
+
+async function evaluateAnswer(text) {
+  if (isProcessing) return;
+  isProcessing = true;
+  const item = WORDS[idx];
+  setMicState('thinking');
+  transcriptEl.style.display = 'block';
+  transcriptEl.innerHTML = `<span class="you-said">You said: “${text}”</span>`;
+
+  // Brief pause so the "thinking" state reads naturally before feedback appears.
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  const lower = text.toLowerCase();
+  const isCorrect = item.keywords.some(k => lower.includes(k));
+  const verdict = {
+    correct: isCorrect,
+    spoken_feedback: isCorrect
+      ? `Nice, that's right on track! "${item.word}" means ${item.definition}.`
+      : `Good try. "${item.word}" actually means ${item.definition}.`
+  };
+
+  score.covered++;
+  if (verdict.correct) score.correct++;
+  results.push({ word: item.word, correct: verdict.correct });
+
+  transcriptEl.innerHTML = `
+    <span class="verdict ${verdict.correct ? 'correct' : 'retry'}">${verdict.correct ? 'Nailed it' : "Here's the answer"}</span>
+    <span class="you-said">You said: “${text}”</span><br>
+    ${verdict.spoken_feedback}
+  `;
+  updateProgress();
+  speak(verdict.spoken_feedback, () => {
+    isProcessing = false;
+    setTimeout(nextWord, 600);
+  });
+}
+
+function finishSession() {
+  updateProgress();
+  progressLabel.textContent = `${WORDS.length} / ${WORDS.length}`;
+  setMicState('idle');
+  micBtn.disabled = true;
+  skipBtn.disabled = true;
+  startBtn.disabled = false;
+  startBtn.textContent = "Start again";
+  fallbackInput.style.display = 'none';
+  transcriptEl.style.display = 'none';
+
+  mainCard.classList.remove('placeholder');
+  mainCard.innerHTML = `
+    <div class="summary">
+      <h2>Session complete</h2>
+      <p>You got ${score.correct} of ${WORDS.length} close to the mark. Every word is worth a second look.</p>
+      <div class="word-list">
+        ${results.map(r => `
+          <div class="row">
+            <b>${r.word}</b>
+            <span class="tag ${r.correct ? 'correct' : 'retry'}">${r.correct ? 'Got it' : 'Review'}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  speak(`Session complete. You got ${score.correct} out of ${WORDS.length} right on the first try. Nice work.`);
+}
+
+function listenForAnswer() {
+  if (isProcessing) return;
+  if (!recognitionSupported) {
+    fallbackInput.style.display = 'flex';
+    stageLabel.textContent = "Type your answer below";
+    return;
+  }
+  if (recognition) {
+    try { recognition.onresult = null; recognition.onerror = null; recognition.onend = null; recognition.abort(); } catch(e) {}
+    recognition = null;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'en-US';
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  setMicState('listening');
+
+  recognition.onresult = (e) => {
+    if (isProcessing) return;
+    const text = e.results[0][0].transcript;
+    try { recognition.stop(); } catch(err) {}
+    evaluateAnswer(text);
+  };
+  recognition.onerror = () => {
+    setMicState('idle');
+    fallbackInput.style.display = 'flex';
+    stageLabel.textContent = "Didn't catch that — type it instead";
+  };
+  recognition.onend = () => {
+    if (micBtn.classList.contains('listening') && !isProcessing) setMicState('idle');
+  };
+  recognition.start();
+}
+
+micBtn.addEventListener('click', () => {
+  if (idx < 0 || idx >= WORDS.length || isProcessing) return;
+  listenForAnswer();
+});
+
+fallbackSend.addEventListener('click', () => {
+  const val = fallbackText.value.trim();
+  if (!val) return;
+  fallbackText.value = '';
+  fallbackInput.style.display = 'none';
+  evaluateAnswer(val);
+});
+fallbackText.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') fallbackSend.click();
+});
+
+startBtn.addEventListener('click', startSession);
+skipBtn.addEventListener('click', () => {
+  window.speechSynthesis.cancel();
+  if (recognition) { try { recognition.stop(); } catch(e){} }
+  results.push({ word: WORDS[idx].word, correct: false });
+  score.covered++;
+  nextWord();
+});
+</script>
+</body>
+</html>
